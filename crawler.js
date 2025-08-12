@@ -43,7 +43,7 @@ if (fs.existsSync(pageFile)) {
   // Navigate the page to a URL.
   await page.goto(`https://nettruyenvia.com/tim-truyen?page=${currentPage}`, {
     waitUntil: "load",
-    timeout: 30000,
+    timeout: 15000,
   });
 
   let isBtnDisabled = false;
@@ -102,7 +102,7 @@ if (fs.existsSync(pageFile)) {
       fs.writeFileSync(pageFile, String(currentPage));
       await Promise.all([
         page.click("li.page-item:last-child a[aria-label='Next »']"),
-        page.waitForNavigation({ waitUntil: "networkidle2", timeout: 30000 }),
+        page.waitForNavigation({ waitUntil: "networkidle2", timeout: 15000 }),
       ]);
     }
   }
