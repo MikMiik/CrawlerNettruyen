@@ -43,14 +43,14 @@ if (fs.existsSync(pageFile)) {
   // Navigate the page to a URL.
   await page.goto(`https://nettruyenvia.com/tim-truyen?page=${currentPage}`, {
     waitUntil: "load",
-    timeout: 120000,
+    timeout: 30000,
   });
 
   let isBtnDisabled = false;
   while (!isBtnDisabled) {
     console.log(`Đang crawl page: ${currentPage}`);
-    fs.writeFileSync(pageFile, String(currentPage));
     let comics = [];
+    let pageSuccess = false;
     try {
       // Lấy thông tin comics
       comics = await page.$$eval(".items .item", (elements) =>
@@ -85,8 +85,10 @@ if (fs.existsSync(pageFile)) {
       await Comic.bulkCreate(comics, {
         updateOnDuplicate: ["originalUrl", "slug", "thumbnail"],
       });
+      pageSuccess = true;
     } catch (error) {
       console.error("Lỗi khi lấy comics:", error);
+      pageSuccess = false;
     }
     await page.locator("ul.pagination li.page-item:last-child");
 
@@ -95,12 +97,12 @@ if (fs.existsSync(pageFile)) {
 
     isBtnDisabled = is_disabled;
 
-    if (!is_disabled) {
+    if (!is_disabled && pageSuccess) {
       currentPage++;
       fs.writeFileSync(pageFile, String(currentPage));
       await Promise.all([
         page.click("li.page-item:last-child a[aria-label='Next »']"),
-        page.waitForNavigation({ waitUntil: "networkidle2", timeout: 120000 }),
+        page.waitForNavigation({ waitUntil: "networkidle2", timeout: 30000 }),
       ]);
     }
   }
