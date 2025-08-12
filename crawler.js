@@ -12,7 +12,7 @@ const { Comic } = require("./src/models");
   const page = await browser.newPage();
 
   // Navigate the page to a URL.
-  await page.goto("https://nettruyenvia.com/tim-truyen?page=634", {
+  await page.goto("https://nettruyenvia.com/tim-truyen", {
     waitUntil: "load",
   });
 
