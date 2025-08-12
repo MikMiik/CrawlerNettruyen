@@ -37,8 +37,9 @@ puppeteer.use(StealthPlugin());
   });
 
   let isBtnDisabled = false;
-
+  let currentPage = 1;
   while (!isBtnDisabled) {
+    console.log(`Đang crawl page: ${currentPage}`);
     let comics = [];
     try {
       // Lấy thông tin comics
@@ -85,10 +86,9 @@ puppeteer.use(StealthPlugin());
     isBtnDisabled = is_disabled;
 
     if (!is_disabled) {
+      currentPage++;
       await Promise.all([
-        page.click(
-          "ul.pagination li.page-item:last-child a[aria-label='Next »']"
-        ),
+        page.click("li.page-item:last-child a[aria-label='Next »']"),
         page.waitForNavigation({ waitUntil: "networkidle2", timeout: 120000 }),
       ]);
     }
