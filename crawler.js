@@ -16,7 +16,7 @@ puppeteer.use(StealthPlugin());
 
   const limit = pLimit(5);
   // Navigate the page to a URL.
-  await page.goto("https://nettruyenvia.com/tim-truyen?page=634", {
+  await page.goto("https://nettruyenvia.com/tim-truyen", {
     waitUntil: "load",
   });
 
