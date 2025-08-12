@@ -2,6 +2,7 @@ require("module-alias/register");
 require("dotenv").config();
 const puppeteer = require("puppeteer-extra");
 const downloadImage = require("./utils/downloadImage");
+const getRandomUserAgent = require("./utils/getRandomUserAgent");
 const { Comic } = require("./src/models");
 const pLimit = require("p-limit").default;
 const StealthPlugin = require("puppeteer-extra-plugin-stealth");
@@ -26,12 +27,13 @@ puppeteer.use(StealthPlugin());
     ],
   });
   const page = await browser.newPage();
+  await page.setUserAgent(getRandomUserAgent());
 
   const limit = pLimit(5);
   // Navigate the page to a URL.
   await page.goto("https://nettruyenvia.com/tim-truyen", {
     waitUntil: "load",
-    timeout: 120000, // tăng timeout lên 2 phút
+    timeout: 0,
   });
 
   let isBtnDisabled = false;
