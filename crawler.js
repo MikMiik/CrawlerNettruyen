@@ -11,6 +11,19 @@ puppeteer.use(StealthPlugin());
   const browser = await puppeteer.launch({
     headless: true,
     defaultViewport: false,
+    args: [
+      "--no-sandbox",
+      "--disable-setuid-sandbox",
+      "--disable-dev-shm-usage",
+      "--disable-accelerated-2d-canvas",
+      "--disable-gpu",
+      "--window-size=1920,1080",
+      "--disable-blink-features=AutomationControlled",
+      "--disable-infobars",
+      "--disable-web-security",
+      "--disable-features=IsolateOrigins,site-per-process",
+      "--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36",
+    ],
   });
   const page = await browser.newPage();
 
@@ -18,6 +31,7 @@ puppeteer.use(StealthPlugin());
   // Navigate the page to a URL.
   await page.goto("https://nettruyenvia.com/tim-truyen", {
     waitUntil: "load",
+    timeout: 120000, // tăng timeout lên 2 phút
   });
 
   let isBtnDisabled = false;
