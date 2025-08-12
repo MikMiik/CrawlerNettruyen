@@ -7,10 +7,20 @@ const { Comic } = require("./src/models");
 const pLimit = require("p-limit").default;
 const StealthPlugin = require("puppeteer-extra-plugin-stealth");
 puppeteer.use(StealthPlugin());
+const fs = require("fs");
+
+// Đọc số trang hiện tại từ file nếu có
+let currentPage = 1;
+const pageFile = "./current_page.txt";
+if (fs.existsSync(pageFile)) {
+  const saved = parseInt(fs.readFileSync(pageFile, "utf8"));
+  if (!isNaN(saved) && saved > 0) currentPage = saved;
+}
 
 (async () => {
   const browser = await puppeteer.launch({
     headless: true,
+    executablePath: process.env.CHROME_PATH || "/usr/bin/google-chrome-stable",
     defaultViewport: false,
     args: [
       "--no-sandbox",
@@ -31,15 +41,15 @@ puppeteer.use(StealthPlugin());
 
   const limit = pLimit(5);
   // Navigate the page to a URL.
-  await page.goto("https://nettruyenvia.com/tim-truyen", {
+  await page.goto(`https://nettruyenvia.com/tim-truyen?page=${currentPage}`, {
     waitUntil: "load",
-    timeout: 0,
+    timeout: 120000,
   });
 
   let isBtnDisabled = false;
-  let currentPage = 1;
   while (!isBtnDisabled) {
     console.log(`Đang crawl page: ${currentPage}`);
+    fs.writeFileSync(pageFile, String(currentPage));
     let comics = [];
     try {
       // Lấy thông tin comics
@@ -87,6 +97,7 @@ puppeteer.use(StealthPlugin());
 
     if (!is_disabled) {
       currentPage++;
+      fs.writeFileSync(pageFile, String(currentPage));
       await Promise.all([
         page.click("li.page-item:last-child a[aria-label='Next »']"),
         page.waitForNavigation({ waitUntil: "networkidle2", timeout: 120000 }),
@@ -94,5 +105,15 @@ puppeteer.use(StealthPlugin());
     }
   }
 
+  // Xóa file lưu trang khi crawl xong
+  if (fs.existsSync(pageFile)) fs.unlinkSync(pageFile);
   await browser.close();
 })();
+
+// Bắt lỗi timeout và tự động chạy lại từ trang đã lưu
+process.on("unhandledRejection", (err) => {
+  if (String(err).includes("TimeoutError")) {
+    console.error("Timeout! Đang chạy lại từ trang đã lưu...");
+    process.exit(1);
+  }
+});
