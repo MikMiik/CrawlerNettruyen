@@ -17,6 +17,7 @@ async function downloadImage(url, filePath, referer) {
       headers: {
         Referer: referer,
       },
+      validateStatus: (status) => status >= 200 && status < 300, // chỉ nhận ảnh thành công
     });
 
     response.data.pipe(fs.createWriteStream(filePath));
@@ -26,7 +27,8 @@ async function downloadImage(url, filePath, referer) {
     });
   } catch (err) {
     console.error(`Error downloading ${url}: ${err.message}`);
-    throw err;
+    // Nếu lỗi 404 hoặc không tải được ảnh thì bỏ qua, không throw
+    return null;
   }
 }
 module.exports = downloadImage;

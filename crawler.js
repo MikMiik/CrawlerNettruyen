@@ -1,8 +1,11 @@
 require("module-alias/register");
 require("dotenv").config();
-const puppeteer = require("puppeteer");
+const puppeteer = require("puppeteer-extra");
 const downloadImage = require("./utils/downloadImage");
 const { Comic } = require("./src/models");
+const pLimit = require("p-limit").default;
+const StealthPlugin = require("puppeteer-extra-plugin-stealth");
+puppeteer.use(StealthPlugin());
 
 (async () => {
   const browser = await puppeteer.launch({
@@ -11,8 +14,9 @@ const { Comic } = require("./src/models");
   });
   const page = await browser.newPage();
 
+  const limit = pLimit(5);
   // Navigate the page to a URL.
-  await page.goto("https://nettruyenvia.com/tim-truyen", {
+  await page.goto("https://nettruyenvia.com/tim-truyen?page=634", {
     waitUntil: "load",
   });
 
@@ -34,19 +38,22 @@ const { Comic } = require("./src/models");
       );
       // Lấy ảnh
       await Promise.all(
-        comics.map(async (comic) => {
-          if (comic.thumbnail) {
-            const thumbPath = `/uploads/thumbnails/${comic.thumbnail
-              .split("/")
-              .at(-1)}`;
-            await downloadImage(
-              comic.thumbnail,
-              `.${thumbPath}`,
-              "https://nettruyenvia.com/"
-            );
-            comic.thumbnail = thumbPath;
-          }
-        })
+        comics.map(async (comic) =>
+          limit(async () => {
+            if (comic.thumbnail) {
+              const thumbPath = `/uploads/thumbnails/${comic.thumbnail
+                .split("/")
+                .at(-1)}`;
+              await downloadImage(
+                comic.thumbnail,
+                `.${thumbPath}`,
+                "https://nettruyenvia.com/"
+              );
+              comic.thumbnail = thumbPath;
+              return comic;
+            }
+          })
+        )
       );
       await Comic.bulkCreate(comics, {
         updateOnDuplicate: ["originalUrl", "slug", "thumbnail"],
@@ -54,15 +61,18 @@ const { Comic } = require("./src/models");
     } catch (error) {
       console.error("Lỗi khi lấy comics:", error);
     }
-    await page.locator("li.page-item:last-child");
+    await page.locator("ul.pagination li.page-item:last-child");
 
     const is_disabled =
-      (await page.locator("li.page-item:last-child.disabled")) !== null;
+      (await page.$("ul.pagination li.page-item:last-child.disabled")) !== null;
 
     isBtnDisabled = is_disabled;
+
     if (!is_disabled) {
       await Promise.all([
-        page.click("li.page-item:last-child a[aria-label='Next »']"),
+        page.click(
+          "ul.pagination li.page-item:last-child a[aria-label='Next »']"
+        ),
         page.waitForNavigation({ waitUntil: "networkidle2" }),
       ]);
     }
