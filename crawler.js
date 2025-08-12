@@ -87,7 +87,7 @@ puppeteer.use(StealthPlugin());
         page.click(
           "ul.pagination li.page-item:last-child a[aria-label='Next »']"
         ),
-        page.waitForNavigation({ waitUntil: "networkidle2" }),
+        page.waitForNavigation({ waitUntil: "networkidle2", timeout: 120000 }),
       ]);
     }
   }
