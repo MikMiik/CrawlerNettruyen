@@ -179,19 +179,6 @@ const startCrawling = async (urlsIds) => {
   await startCrawling(urlsIds);
 })();
 
-// Bắt lỗi promise chưa xử lý ngoài cluster
-process.on("unhandledRejection", (err) => {
-  console.error("Unhandled rejection:", err);
-  process.exit(1);
-});
-process.on("unhandledRejection", (err) => {
-  if (String(err).includes("TimeoutError")) {
-    console.error("Timeout! Đang chạy lại từ url đã lưu...");
-    process.exit(1);
-  }
-});
-
-// Bắt lỗi timeout ngoài cluster (rất hiếm khi xảy ra)
 process.on("unhandledRejection", (err) => {
   if (String(err).includes("TimeoutError")) {
     console.error("Timeout! Đang chạy lại từ url đã lưu...");

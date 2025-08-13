@@ -3,7 +3,7 @@
 module.exports = {
   async up(queryInterface, Sequelize) {
     await queryInterface.addColumn("comics", "otherName", {
-      type: Sequelize.STRING(100),
+      type: Sequelize.TEXT,
       allowNull: true,
       after: "name",
     });
