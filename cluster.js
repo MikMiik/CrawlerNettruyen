@@ -188,7 +188,6 @@ process.on("unhandledRejection", (err) => {
     process.exit(1);
   }
 });
-main();
 
 // Bắt lỗi timeout ngoài cluster (rất hiếm khi xảy ra)
 process.on("unhandledRejection", (err) => {
