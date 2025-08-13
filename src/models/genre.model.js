@@ -1,6 +1,7 @@
 "use strict";
 
 const { Model } = require("sequelize");
+const { default: slugify } = require("slugify");
 
 module.exports = (sequelize, DataTypes) => {
   class Genre extends Model {
@@ -14,7 +15,10 @@ module.exports = (sequelize, DataTypes) => {
   }
   Genre.init(
     {
+      id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
       name: { type: DataTypes.STRING, allowNull: false, unique: true },
+      url: { type: DataTypes.STRING, allowNull: true },
+      slug: { type: DataTypes.STRING, allowNull: true, unique: true },
       isActive: {
         type: DataTypes.BOOLEAN,
         allowNull: false,
@@ -32,5 +36,6 @@ module.exports = (sequelize, DataTypes) => {
       paranoid: true,
     }
   );
+
   return Genre;
 };

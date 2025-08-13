@@ -14,11 +14,18 @@ module.exports = (sequelize, DataTypes) => {
   }
   Comic.init(
     {
-      name: { type: DataTypes.STRING, allowNull: false, unique: true },
+      id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+      name: { type: DataTypes.STRING, allowNull: false },
+      otherName: { type: DataTypes.STRING, allowNull: true },
+      authorId: { type: DataTypes.INTEGER, allowNull: true },
+      content: { type: DataTypes.TEXT, allowNull: true },
       slug: { type: DataTypes.STRING, allowNull: false, unique: true },
       thumbnail: { type: DataTypes.STRING },
       originalUrl: { type: DataTypes.STRING, allowNull: false, unique: true },
-      crawlStatus: { type: DataTypes.STRING },
+      status: { type: DataTypes.STRING },
+      followingCount: { type: DataTypes.INTEGER, defaultValue: 0 },
+      viewCount: { type: DataTypes.INTEGER, defaultValue: 0 },
+      ratingCount: { type: DataTypes.INTEGER, defaultValue: 0 },
       createdAt: DataTypes.DATE,
       updatedAt: DataTypes.DATE,
       deletedAt: DataTypes.DATE,

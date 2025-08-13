@@ -1,3 +1,4 @@
 node_modules
 .env
 uploads
+current_page.txt

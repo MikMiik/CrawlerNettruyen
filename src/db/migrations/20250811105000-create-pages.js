@@ -2,32 +2,30 @@
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {
   async up(queryInterface, Sequelize) {
-    await queryInterface.createTable("comic_genre", {
+    await queryInterface.createTable("pages", {
       id: {
         allowNull: false,
         autoIncrement: true,
         primaryKey: true,
         type: Sequelize.INTEGER,
       },
-      comicId: {
+      chapterId: {
         type: Sequelize.INTEGER,
         allowNull: false,
         references: {
-          model: "comics",
+          model: "chapters",
           key: "id",
         },
         onDelete: "CASCADE",
         onUpdate: "CASCADE",
       },
-      genreId: {
+      pageNumber: {
         type: Sequelize.INTEGER,
         allowNull: false,
-        references: {
-          model: "genres",
-          key: "id",
-        },
-        onDelete: "CASCADE",
-        onUpdate: "CASCADE",
+      },
+      imageUrl: {
+        type: Sequelize.STRING,
+        allowNull: false,
       },
       createdAt: {
         allowNull: false,
@@ -42,13 +40,11 @@ module.exports = {
         allowNull: true,
       },
     });
-    await queryInterface.addConstraint("comic_genre", {
-      fields: ["comicId", "genreId"],
-      type: "unique",
-      name: "unique_comic_genre",
+    await queryInterface.addIndex("pages", ["chapterId", "pageNumber"], {
+      unique: true,
     });
   },
   async down(queryInterface, Sequelize) {
-    await queryInterface.dropTable("comic_genre");
+    await queryInterface.dropTable("pages");
   },
 };
