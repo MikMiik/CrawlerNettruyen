@@ -31,14 +31,10 @@ const startCrawling = async (urlsIds) => {
       "--disable-features=IsolateOrigins,site-per-process",
     ],
   });
+  // Bắt lỗi trong cluster và thoát tiến trình để pm2 restart lại toàn bộ file
   cluster.on("taskerror", (err, data) => {
     console.log(`Error crawling ${data}: ${err.message}`);
-    if (String(err).includes("TimeoutError")) {
-      console.error(
-        "TimeoutError detected in cluster task. Exiting for pm2 restart..."
-      );
-      process.exit(1);
-    }
+    process.exit(1);
   });
 
   await cluster.task(async ({ page, data: { id, url } }) => {
@@ -181,7 +177,11 @@ const startCrawling = async (urlsIds) => {
   await startCrawling(urlsIds);
 })();
 
-// Bắt lỗi timeout ngoài cluster (rất hiếm khi xảy ra)
+// Bắt lỗi promise chưa xử lý ngoài cluster
+process.on("unhandledRejection", (err) => {
+  console.error("Unhandled rejection:", err);
+  process.exit(1);
+});
 process.on("unhandledRejection", (err) => {
   if (String(err).includes("TimeoutError")) {
     console.error("Timeout! Đang chạy lại từ url đã lưu...");
