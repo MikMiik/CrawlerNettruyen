@@ -52,7 +52,8 @@ const startCrawling = async (urlsIds) => {
       } catch (gotoErr) {
         await transaction.rollback();
         console.error(`Error navigating to ${url}:`, gotoErr);
-        return;
+        // Thoát tiến trình ngay khi gặp lỗi navigation (timeout, bị chặn, ...)
+        process.exit(1);
       }
       await page.waitForSelector(".detail-info", { timeout: 7000 });
 
@@ -144,7 +145,8 @@ const startCrawling = async (urlsIds) => {
     } catch (error) {
       await transaction.rollback();
       console.error("Lỗi khi lấy details:", error);
-      // Không xóa khỏi file nếu lỗi
+      // Thoát tiến trình nếu có lỗi bất kỳ trong task
+      process.exit(1);
     }
   });
 
