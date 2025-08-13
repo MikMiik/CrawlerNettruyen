@@ -10,7 +10,7 @@ const puppeteerExtra = require("puppeteer-extra");
 const StealthPlugin = require("puppeteer-extra-plugin-stealth");
 puppeteerExtra.use(StealthPlugin());
 
-const startCrawling = async (urlsIds, retryCount = 0) => {
+const startCrawling = async (urlsIds) => {
   const cluster = await Cluster.launch({
     concurrency: Cluster.CONCURRENCY_PAGE,
     maxConcurrency: 5,
@@ -35,7 +35,7 @@ const startCrawling = async (urlsIds, retryCount = 0) => {
     console.log(`Error crawling ${data}: ${err.message}`);
     if (String(err).includes("TimeoutError")) {
       console.error(
-        "TimeoutError detected in cluster task. Exiting for restart..."
+        "TimeoutError detected in cluster task. Exiting for pm2 restart..."
       );
       process.exit(1);
     }
@@ -181,7 +181,16 @@ const startCrawling = async (urlsIds, retryCount = 0) => {
   await startCrawling(urlsIds);
 })();
 
-// Bắt lỗi timeout và tự động chạy lại từ url đã lưu
+// Bắt lỗi timeout ngoài cluster (rất hiếm khi xảy ra)
+process.on("unhandledRejection", (err) => {
+  if (String(err).includes("TimeoutError")) {
+    console.error("Timeout! Đang chạy lại từ url đã lưu...");
+    process.exit(1);
+  }
+});
+main();
+
+// Bắt lỗi timeout ngoài cluster (rất hiếm khi xảy ra)
 process.on("unhandledRejection", (err) => {
   if (String(err).includes("TimeoutError")) {
     console.error("Timeout! Đang chạy lại từ url đã lưu...");
