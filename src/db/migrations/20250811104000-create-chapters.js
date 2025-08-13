@@ -28,7 +28,7 @@ module.exports = {
         allowNull: true,
       },
       chapterIndex: {
-        type: Sequelize.DECIMAL(5, 1),
+        type: Sequelize.STRING(50),
         allowNull: false,
       },
       releaseDate: {

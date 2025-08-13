@@ -14,6 +14,8 @@ module.exports = (sequelize, DataTypes) => {
       name: { type: DataTypes.STRING, allowNull: false },
       url: { type: DataTypes.STRING, allowNull: true },
       slug: { type: DataTypes.STRING, allowNull: true },
+      chapterIndex: { type: DataTypes.STRING(50), allowNull: false },
+      releaseDate: { type: DataTypes.DATE, allowNull: true },
       createdAt: DataTypes.DATE,
       updatedAt: DataTypes.DATE,
       deletedAt: DataTypes.DATE,
