@@ -95,33 +95,140 @@ const startCrawling = async (urlsIds, retryCount = 0) => {
             { where: { originalUrl: url }, transaction }
           );
         }
-        // genre
-        const genres = await page.$eval(".detail-info .kind .col-xs-8", (el) =>
-          el.innerText
-            .trim()
-            .split("-")
-            .map((s) => s.trim())
-        );
+        let retry = 0;
+        let success = false;
+        while (retry < 3 && !success) {
+          const sequelize = require("./src/models").sequelize;
+          const transaction = await sequelize.transaction();
+          try {
+            try {
+              await page.goto(url, {
+                waitUntil: "load",
+                timeout: 25000,
+              });
+            } catch (gotoErr) {
+              await transaction.rollback();
+              if (
+                gotoErr.name === "TargetCloseError" ||
+                String(gotoErr).includes("Target closed")
+              ) {
+                try {
+                  await page.close();
+                } catch {}
+                await new Promise((r) => setTimeout(r, 2000));
+              }
+              retry++;
+              if (retry >= 3) {
+                const errorLine = `${id}|${url}\n`;
+                fs.appendFileSync(errorFile, errorLine);
+              }
+              continue;
+            }
+            await page.waitForSelector(".detail-info", { timeout: 7000 });
 
-        for (const genreName of genres) {
-          const [genre] = await Genre.findOrCreate({
-            where: { name: genreName },
-            transaction,
-          });
-          await ComicGenre.findOrCreate({
-            where: { comicId: id, genreId: genre.id },
-            transaction,
-          });
+            // otherName
+            const otherName = await page.$$eval(
+              ".detail-info .othername .other-name",
+              (els) => (els.length ? els[0].innerText.trim() : null)
+            );
+
+            // status
+            const status = await page.$eval(
+              ".detail-info .status .col-xs-8",
+              (el) => el.innerText.trim()
+            );
+
+            //content
+            const content = await page.$eval(
+              ".detail-content div[style*='font-weight: bold']",
+              (el) => el.nextElementSibling.innerText.trim()
+            );
+
+            await Comic.update(
+              { otherName, status, content },
+              { where: { originalUrl: url }, transaction }
+            );
+
+            // authorName
+            const authorName = await page.$eval(
+              ".detail-info .author .col-xs-8",
+              (el) => el.innerText.trim()
+            );
+            if (
+              !["Đang cập nhật", "Đang Cập Nhật", "Unknown"].includes(
+                authorName
+              )
+            ) {
+              const [author] = await Author.upsert(
+                {
+                  name: authorName,
+                  username: slugify(authorName, { lower: true, strict: true }),
+                },
+                { where: { name: authorName }, transaction }
+              );
+              await Comic.update(
+                { authorId: author.id },
+                { where: { originalUrl: url }, transaction }
+              );
+            }
+            // genre
+            const genres = await page.$eval(
+              ".detail-info .kind .col-xs-8",
+              (el) =>
+                el.innerText
+                  .trim()
+                  .split("-")
+                  .map((s) => s.trim())
+            );
+
+            for (const genreName of genres) {
+              const [genre] = await Genre.findOrCreate({
+                where: { name: genreName },
+                transaction,
+              });
+              await ComicGenre.findOrCreate({
+                where: { comicId: id, genreId: genre.id },
+                transaction,
+              });
+            }
+
+            await page.waitForSelector(".detail-content", { timeout: 7000 });
+
+            await transaction.commit();
+            console.log(`Crawled successfully: ${url}`);
+            success = true;
+          } catch (error) {
+            if (typeof transaction.rollback === "function")
+              await transaction.rollback();
+            if (
+              error.name === "TargetCloseError" ||
+              String(error).includes("Target closed")
+            ) {
+              try {
+                await page.close();
+              } catch {}
+              await new Promise((r) => setTimeout(r, 2000));
+            }
+            console.error("Lỗi khi lấy details:", error);
+            retry++;
+            if (retry >= 3) {
+              const errorLine = `${id}|${url}\n`;
+              fs.appendFileSync(errorFile, errorLine);
+            }
+          }
         }
-
-        await page.waitForSelector(".detail-content", { timeout: 7000 });
-
-        await transaction.commit();
-        console.log(`Crawled successfully: ${url}`);
-        success = true;
       } catch (error) {
         if (typeof transaction.rollback === "function")
           await transaction.rollback();
+        if (
+          error.name === "TargetCloseError" ||
+          String(error).includes("Target closed")
+        ) {
+          try {
+            await page.close();
+          } catch {}
+          await new Promise((r) => setTimeout(r, 2000));
+        }
         console.error("Lỗi khi lấy details:", error);
         retry++;
         if (retry >= 3) {
