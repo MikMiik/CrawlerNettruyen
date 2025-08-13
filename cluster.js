@@ -5,6 +5,7 @@ const { default: slugify } = require("slugify");
 const fs = require("fs");
 const getRandomUserAgent = require("./utils/getRandomUserAgent");
 const errorFile = "./error_urls.txt";
+const detailUrlsFile = "./detail_urls.txt";
 
 const puppeteerExtra = require("puppeteer-extra");
 const StealthPlugin = require("puppeteer-extra-plugin-stealth");
@@ -130,9 +131,19 @@ const startCrawling = async (urlsIds, retryCount = 0) => {
 
       await transaction.commit();
       console.log(`Crawled successfully: ${url}`);
+
+      // Xóa url/id thành công khỏi file detail_urls.txt
+      if (fs.existsSync(detailUrlsFile)) {
+        let arr = JSON.parse(fs.readFileSync(detailUrlsFile, "utf8"));
+        arr = arr.filter(
+          (item) => !(item.id === id && item.originalUrl === url)
+        );
+        fs.writeFileSync(detailUrlsFile, JSON.stringify(arr, null, 2));
+      }
     } catch (error) {
       await transaction.rollback();
       console.error("Lỗi khi lấy details:", error);
+      // Không xóa khỏi file nếu lỗi
     }
   });
 
@@ -145,9 +156,30 @@ const startCrawling = async (urlsIds, retryCount = 0) => {
 };
 
 (async () => {
-  const urlsIds = await Comic.findAll({
-    attributes: ["id", "originalUrl"],
-  });
-
+  let urlsIds = [];
+  if (fs.existsSync(detailUrlsFile)) {
+    // Đọc từ file nếu đã tồn tại
+    try {
+      urlsIds = JSON.parse(fs.readFileSync(detailUrlsFile, "utf8"));
+    } catch (e) {
+      console.error("Lỗi đọc file detail_urls.txt:", e);
+      process.exit(1);
+    }
+  } else {
+    // Lấy từ DB, ghi ra file
+    urlsIds = await Comic.findAll({
+      attributes: ["id", "originalUrl"],
+      raw: true,
+    });
+    fs.writeFileSync(detailUrlsFile, JSON.stringify(urlsIds, null, 2));
+  }
   await startCrawling(urlsIds);
 })();
+
+// Bắt lỗi timeout và tự động chạy lại từ url đã lưu
+process.on("unhandledRejection", (err) => {
+  if (String(err).includes("TimeoutError")) {
+    console.error("Timeout! Đang chạy lại từ url đã lưu...");
+    process.exit(1);
+  }
+});
