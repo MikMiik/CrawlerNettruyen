@@ -39,7 +39,7 @@ const startCrawling = async (urlsIds, retryCount = 0) => {
       try {
         await page.goto(url, {
           waitUntil: "load",
-          timeout: 25000,
+          timeout: 15000,
         });
       } catch (gotoErr) {
         await transaction.rollback();
@@ -49,17 +49,25 @@ const startCrawling = async (urlsIds, retryCount = 0) => {
       await page.waitForSelector(".detail-info", { timeout: 7000 });
 
       // otherName
+      await page.waitForSelector(".detail-info .othername", { timeout: 7000 });
       const otherName = await page.$$eval(
         ".detail-info .othername .other-name",
         (els) => (els.length ? els[0].innerText.trim() : null)
       );
 
       // status
+      await page.waitForSelector(".detail-info .status .col-xs-8", {
+        timeout: 7000,
+      });
       const status = await page.$eval(".detail-info .status .col-xs-8", (el) =>
         el.innerText.trim()
       );
 
       //content
+      await page.waitForSelector(
+        ".detail-content div[style*='font-weight: bold']",
+        { timeout: 7000 }
+      );
       const content = await page.$eval(
         ".detail-content div[style*='font-weight: bold']",
         (el) => el.nextElementSibling.innerText.trim()
@@ -71,6 +79,9 @@ const startCrawling = async (urlsIds, retryCount = 0) => {
       );
 
       // authorName
+      await page.waitForSelector(".detail-info .author .col-xs-8", {
+        timeout: 7000,
+      });
       const authorName = await page.$eval(
         ".detail-info .author .col-xs-8",
         (el) => el.innerText.trim()
@@ -89,6 +100,9 @@ const startCrawling = async (urlsIds, retryCount = 0) => {
         );
       }
       // genre
+      await page.waitForSelector(".detail-info .kind .col-xs-8", {
+        timeout: 7000,
+      });
       const genres = await page.$eval(".detail-info .kind .col-xs-8", (el) =>
         el.innerText
           .trim()
