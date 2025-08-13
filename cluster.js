@@ -35,7 +35,6 @@ const startCrawling = async (urlsIds, retryCount = 0) => {
     console.log(`Error crawling ${data}: ${err.message}`);
   });
 
-  let failedUrls = [];
   await cluster.task(async ({ page, data: { id, url } }) => {
     console.log(`Crawling URL: ${url} with ID: ${id}`);
     await page.setUserAgent(getRandomUserAgent());
@@ -50,7 +49,7 @@ const startCrawling = async (urlsIds, retryCount = 0) => {
         });
       } catch (gotoErr) {
         await transaction.rollback();
-        failedUrls.push({ id, url });
+        console.error(`Error navigating to ${url}:`, gotoErr);
         return;
       }
       await page.waitForSelector(".detail-info", { timeout: 7000 });
@@ -134,7 +133,6 @@ const startCrawling = async (urlsIds, retryCount = 0) => {
     } catch (error) {
       await transaction.rollback();
       console.error("Lỗi khi lấy details:", error);
-      failedUrls.push({ id, url });
     }
   });
 
@@ -144,29 +142,12 @@ const startCrawling = async (urlsIds, retryCount = 0) => {
 
   await cluster.idle();
   await cluster.close();
-
-  // Ghi các url bị lỗi ra file
-  if (failedUrls.length > 0) {
-    const errorList = failedUrls
-      .map((item) => `${item.id}|${item.url}`)
-      .join("\n");
-    fs.appendFileSync(errorFile, errorList + "\n");
-  }
-
-  // Nếu còn retry, thử lại các url lỗi (tối đa 3 lần)
-  if (failedUrls.length > 0 && retryCount < 3) {
-    console.log(
-      `Retry lần ${retryCount + 1} cho ${failedUrls.length} url lỗi...`
-    );
-    await startCrawling(failedUrls, retryCount + 1);
-  }
 };
 
 (async () => {
-  // Xóa file lỗi cũ nếu có
-  if (fs.existsSync(errorFile)) fs.unlinkSync(errorFile);
   const urlsIds = await Comic.findAll({
     attributes: ["id", "originalUrl"],
   });
+
   await startCrawling(urlsIds);
 })();
