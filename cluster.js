@@ -4,7 +4,6 @@ const { default: slugify } = require("slugify");
 
 const fs = require("fs");
 const getRandomUserAgent = require("./utils/getRandomUserAgent");
-const errorFile = "./error_urls.txt";
 const detailUrlsFile = "./detail_urls.txt";
 
 const puppeteerExtra = require("puppeteer-extra");
@@ -34,6 +33,12 @@ const startCrawling = async (urlsIds, retryCount = 0) => {
   });
   cluster.on("taskerror", (err, data) => {
     console.log(`Error crawling ${data}: ${err.message}`);
+    if (String(err).includes("TimeoutError")) {
+      console.error(
+        "TimeoutError detected in cluster task. Exiting for restart..."
+      );
+      process.exit(1);
+    }
   });
 
   await cluster.task(async ({ page, data: { id, url } }) => {
