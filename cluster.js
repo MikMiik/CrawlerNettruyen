@@ -3,12 +3,18 @@ const { Genre, Comic, Author, ComicGenre } = require("./src/models");
 const { default: slugify } = require("slugify");
 
 const fs = require("fs");
+const getRandomUserAgent = require("./utils/getRandomUserAgent");
 const errorFile = "./error_urls.txt";
+
+const puppeteerExtra = require("puppeteer-extra");
+const StealthPlugin = require("puppeteer-extra-plugin-stealth");
+puppeteerExtra.use(StealthPlugin());
 
 const startCrawling = async (urlsIds, retryCount = 0) => {
   const cluster = await Cluster.launch({
     concurrency: Cluster.CONCURRENCY_PAGE,
     maxConcurrency: 5,
+    puppeteer: puppeteerExtra,
     puppeteerOptions: {
       headless: true,
       defaultViewport: false,
@@ -32,6 +38,7 @@ const startCrawling = async (urlsIds, retryCount = 0) => {
   let failedUrls = [];
   await cluster.task(async ({ page, data: { id, url } }) => {
     console.log(`Crawling URL: ${url} with ID: ${id}`);
+    await page.setUserAgent(getRandomUserAgent());
     const sequelize = require("./src/models").sequelize;
     const transaction = await sequelize.transaction();
     try {
