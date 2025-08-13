@@ -49,7 +49,6 @@ const startCrawling = async (urlsIds, retryCount = 0) => {
       await page.waitForSelector(".detail-info", { timeout: 7000 });
 
       // otherName
-      await page.waitForSelector(".detail-info .othername", { timeout: 7000 });
       const otherName = await page.$$eval(
         ".detail-info .othername .other-name",
         (els) => (els.length ? els[0].innerText.trim() : null)
