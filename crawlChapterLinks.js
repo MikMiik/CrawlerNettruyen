@@ -16,7 +16,7 @@ const startCrawling = async (urlsIds) => {
     maxConcurrency: 5,
     puppeteer: puppeteerExtra,
     puppeteerOptions: {
-      headless: false,
+      headless: true,
       defaultViewport: false,
     },
     args: [
