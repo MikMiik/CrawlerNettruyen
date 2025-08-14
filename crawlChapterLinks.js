@@ -89,8 +89,6 @@ const startCrawling = async (urlsIds) => {
           : `https://nettruyenvia.com${item.url}`,
       }));
 
-      console.log(chapterLinksWithId);
-
       await Chapter.bulkCreate(chapterLinksWithId, {
         updateOnDuplicate: ["title", "slug", "url", "chapterIndex"],
       });
