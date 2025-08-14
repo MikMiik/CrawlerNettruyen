@@ -16,7 +16,7 @@ const startCrawling = async (urlsIds) => {
     maxConcurrency: 5,
     puppeteer: puppeteerExtra,
     puppeteerOptions: {
-      headless: true,
+      headless: false,
       defaultViewport: false,
     },
     args: [
@@ -52,24 +52,19 @@ const startCrawling = async (urlsIds) => {
         process.exit(1);
       }
 
-      try {
-        await page.waitForSelector("#chapter_list", { timeout: 7000 });
-        const viewMore = await page.$("#chapter_list + .view-more");
-        if (viewMore) {
-          await viewMore.click();
-          await page.waitForFunction(
-            () => {
-              const chapter1 = document.querySelector(
-                "#chapter_list li:last-child a"
-              );
-              return chapter1 && chapter1.innerText.trim() === "Chapter 1";
-            },
-            { timeout: 7000 }
-          );
-        }
-      } catch (waitErr) {
-        console.error("Error when expanding chapter list:", waitErr);
-        process.exit(1);
+      await page.waitForSelector("#chapter_list", { timeout: 7000 });
+      const viewMore = await page.$("#chapter_list + .view-more");
+      if (viewMore) {
+        await viewMore.click();
+        await page.waitForFunction(
+          () => {
+            const chapter1 = document.querySelector(
+              "#chapter_list li:last-child a"
+            );
+            return chapter1 && chapter1.innerText.trim() === "Chapter 1";
+          },
+          { timeout: 7000 }
+        );
       }
 
       const chapterLinks = await page.$$eval(
