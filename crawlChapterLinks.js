@@ -45,14 +45,14 @@ const startCrawling = async (urlsIds) => {
       try {
         await page.goto(url, {
           waitUntil: "load",
-          timeout: 7000,
+          timeout: 15000,
         });
       } catch (gotoErr) {
         console.error(`Error navigating to ${url}:`, gotoErr);
         process.exit(1);
       }
 
-      await page.waitForSelector("#chapter_list", { timeout: 7000 });
+      await page.waitForSelector("#chapter_list", { timeout: 15000 });
       const viewMore = await page.$("#chapter_list + .view-more");
       if (viewMore) {
         await viewMore.click();
