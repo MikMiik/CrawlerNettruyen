@@ -32,7 +32,7 @@ const scrollToBottom = async (page, step = 400, delay = 10) => {
 const startCrawling = async (urlsIds) => {
   const cluster = await Cluster.launch({
     concurrency: Cluster.CONCURRENCY_PAGE,
-    maxConcurrency: 5,
+    maxConcurrency: 10,
     puppeteer: puppeteerExtra,
     puppeteerOptions: {
       headless: true,
@@ -64,15 +64,15 @@ const startCrawling = async (urlsIds) => {
       try {
         await page.goto(url, {
           waitUntil: "load",
-          timeout: 15000,
+          timeout: 5000,
         });
       } catch (gotoErr) {
         console.error(`Error navigating to ${url}:`, gotoErr);
         process.exit(1);
       }
       await scrollToBottom(page);
-      await page.waitForNetworkIdle({ idleTime: 2000, timeout: 30000 });
-      await page.waitForSelector(".reading-detail.box_doc", { timeout: 7000 });
+      await page.waitForNetworkIdle({ idleTime: 2000, timeout: 10000 });
+      await page.waitForSelector(".reading-detail.box_doc", { timeout: 5000 });
 
       const pages = await page.$$eval(
         ".reading-detail.box_doc .page-chapter img",
@@ -81,32 +81,36 @@ const startCrawling = async (urlsIds) => {
             imageUrl: el.getAttribute("data-src"),
           }))
       );
-      // Đảm bảo các trường imageUrl và chapterId được cập nhật đúng
-      const updatedPages = await Promise.all(
+
+      // Tạo thư mục chứa ảnh cho chapter
+      const baseFolder = url.split("/truyen-tranh/")[1];
+
+      const chapterDir = `./uploads/pages/${baseFolder}`;
+      if (!fs.existsSync(chapterDir)) {
+        fs.mkdirSync(chapterDir, { recursive: true });
+      }
+
+      // Download tất cả ảnh với tên file theo thứ tự 0.jpg, 1.jpg, 2.jpg...
+      const imageUrls = [];
+      await Promise.all(
         pages.map(async (pageData) => {
-          const thumbPath = `/uploads/pages/${
-            pageData.imageUrl.split("/nettruyen/")[1]
-          }`;
-          const dir = `.${thumbPath}`.split("/").slice(0, -1).join("/");
-          if (!fs.existsSync(dir)) {
-            fs.mkdirSync(dir, { recursive: true });
-          }
+          const fileName = pageData.imageUrl.split("/").pop();
+          const filePath = `${chapterDir}/${fileName}`;
+
           await downloadImage(
             pageData.imageUrl,
-            `.${thumbPath}`,
+            filePath,
             "https://nettruyenvia.com/"
           );
-          return {
-            ...pageData,
-            imageUrl: thumbPath,
-            chapterId: id,
-            comicId,
-          };
+          imageUrls.push(filePath);
         })
       );
 
-      await Page.bulkCreate(updatedPages, {
-        updateOnDuplicate: ["imageUrl", "chapterId", "comicId"],
+      // Lưu một record duy nhất cho chapter với imageUrl là mảng JSON
+      await Page.upsert({
+        imageUrl: imageUrls,
+        chapterId: id,
+        comicId,
       });
 
       console.log(`Crawled successfully: ${url}`);
