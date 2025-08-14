@@ -73,10 +73,8 @@ const startCrawling = async (urlsIds) => {
             title: link.innerText.trim(),
             slug: link.innerText.trim(), // slug sẽ xử lý ở ngoài
             url: link.href,
-            chapterIndex: parseInt(
-              link.innerText.trim().match(/[\d.]+/)[0],
-              10
-            ),
+            chapterIndex: link.innerText.match(/[\d.]+/)[0],
+
             releaseDate: new Date().toISOString(),
           }))
       );
@@ -85,15 +83,17 @@ const startCrawling = async (urlsIds) => {
       const chapterLinksWithId = chapterLinks.map((item) => ({
         ...item,
         comicId: id,
-        slug: slugify(item.title, { lower: true, strict: true }),
+        slug: slugify(item.title, { lower: true }),
         url: item.url.startsWith("http")
           ? item.url
           : `https://nettruyenvia.com${item.url}`,
       }));
 
-      await Chapter.bulkCreate(chapterLinksWithId, {
-        updateOnDuplicate: ["title", "slug", "url", "chapterIndex"],
-      });
+      console.log(chapterLinksWithId);
+
+      // await Chapter.bulkCreate(chapterLinksWithId, {
+      //   updateOnDuplicate: ["title", "slug", "url", "chapterIndex"],
+      // });
 
       console.log(`Crawled successfully: ${url}`);
 
