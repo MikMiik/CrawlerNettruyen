@@ -63,7 +63,7 @@ const startCrawling = async (urlsIds) => {
             );
             return chapter1 && chapter1.innerText.trim() === "Chapter 1";
           },
-          { timeout: 7000 }
+          { timeout: 15000 }
         );
       }
 
