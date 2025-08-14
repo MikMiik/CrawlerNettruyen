@@ -53,16 +53,41 @@ const startCrawling = async (urlsIds) => {
       }
 
       await page.waitForSelector("#chapter_list", { timeout: 5000 });
-      const viewMore = await page.$(".view-more");
-      if (viewMore) {
-        await page.evaluate((el) => el.click(), viewMore);
-        await page.waitForFunction(
-          () =>
-            document
-              .querySelector("#chapter_list")
-              ?.classList.contains("active"),
-          { timeout: 10000 }
+      while (true) {
+        // Kiểm tra nút "Xem thêm" còn tồn tại không
+        const viewMore = await page.$(".view-more");
+        if (!viewMore) {
+          console.log("✅ Không còn nút 'Xem thêm', đã load hết chapters.");
+          break;
+        }
+
+        // Đếm số lượng chapter hiện tại
+        const beforeCount = await page.$$eval(
+          "#chapter_list .chapter",
+          (els) => els.length
         );
+        console.log(
+          `📌 Số chapter hiện tại: ${beforeCount} → Click 'Xem thêm'...`
+        );
+
+        // Click nút
+        await page.evaluate((el) => el.click(), viewMore);
+
+        // Chờ số chapter tăng
+        const increased = await page
+          .waitForFunction(
+            (count) =>
+              document.querySelectorAll("#chapter_list .chapter").length >
+              count,
+            { timeout: 3000 },
+            beforeCount
+          )
+          .catch(() => false);
+
+        if (!increased) {
+          console.log("⚠️ Không load thêm chapter mới, dừng vòng lặp.");
+          break;
+        }
       }
 
       const chapterLinks = await page.$$eval(
