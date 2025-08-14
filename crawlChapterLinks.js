@@ -55,7 +55,7 @@ const startCrawling = async (urlsIds) => {
       await page.waitForSelector("#chapter_list", { timeout: 5000 });
       const viewMore = await page.$(".view-more");
       if (viewMore) {
-        await viewMore.click();
+        await page.evaluate((el) => el.click(), viewMore);
         await page.waitForFunction(
           () =>
             document
