@@ -91,9 +91,9 @@ const startCrawling = async (urlsIds) => {
 
       console.log(chapterLinksWithId);
 
-      // await Chapter.bulkCreate(chapterLinksWithId, {
-      //   updateOnDuplicate: ["title", "slug", "url", "chapterIndex"],
-      // });
+      await Chapter.bulkCreate(chapterLinksWithId, {
+        updateOnDuplicate: ["title", "slug", "url", "chapterIndex"],
+      });
 
       console.log(`Crawled successfully: ${url}`);
 
