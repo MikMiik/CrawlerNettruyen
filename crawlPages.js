@@ -1,14 +1,33 @@
 const { Cluster } = require("puppeteer-cluster");
-const { Chapter, Comic } = require("./src/models");
-const { default: slugify } = require("slugify");
+const { Chapter, Page } = require("./src/models");
 
 const fs = require("fs");
 const getRandomUserAgent = require("./utils/getRandomUserAgent");
-const detailChaptersFile = "./detail_chapters.txt";
+const detailPagesFile = "./detail_pages.txt";
 
 const puppeteerExtra = require("puppeteer-extra");
 const StealthPlugin = require("puppeteer-extra-plugin-stealth");
+const downloadImage = require("./utils/downloadImage");
 puppeteerExtra.use(StealthPlugin());
+
+const scrollToBottom = async (page, step = 400, delay = 10) => {
+  await page.evaluate(
+    async (step, delay) => {
+      const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+      let totalHeight = 0;
+      let distance = step;
+
+      while (totalHeight < document.body.scrollHeight) {
+        window.scrollBy(0, distance);
+        totalHeight += distance;
+        await sleep(delay);
+      }
+    },
+    step,
+    delay
+  );
+};
 
 const startCrawling = async (urlsIds) => {
   const cluster = await Cluster.launch({
@@ -37,7 +56,7 @@ const startCrawling = async (urlsIds) => {
     process.exit(1);
   });
 
-  await cluster.task(async ({ page, data: { id, url } }) => {
+  await cluster.task(async ({ page, data: { id, url, comicId } }) => {
     console.log(`Crawling URL: ${url} with ID: ${id}`);
     await page.setUserAgent(getRandomUserAgent());
     try {
@@ -45,65 +64,57 @@ const startCrawling = async (urlsIds) => {
       try {
         await page.goto(url, {
           waitUntil: "load",
-          timeout: 5000,
+          timeout: 15000,
         });
       } catch (gotoErr) {
         console.error(`Error navigating to ${url}:`, gotoErr);
         process.exit(1);
       }
+      await scrollToBottom(page);
+      await page.waitForNetworkIdle({ idleTime: 2000, timeout: 30000 });
+      await page.waitForSelector(".reading-detail.box_doc", { timeout: 7000 });
 
-      await page.waitForSelector("#chapter_list", { timeout: 5000 });
-      const viewMore = await page.$("#chapter_list + .view-more");
-      if (viewMore) {
-        await viewMore.click();
-        await page.waitForFunction(
-          () => {
-            const chapter1 = document.querySelector(
-              "#chapter_list li:last-child a"
-            );
-            return (
-              chapter1 &&
-              (chapter1.innerText.trim() === "Chapter 1" ||
-                chapter1.innerText.trim() === "Chapter 0")
-            );
-          },
-          { timeout: 5000 }
-        );
-      }
-
-      const chapterLinks = await page.$$eval(
-        "#chapter_list .chapter > a",
-        (links) =>
-          links.map((link) => ({
-            title: link.innerText.trim(),
-            slug: link.innerText.trim(),
-            url: link.href,
-            chapterIndex: link.innerText.match(/[\d.]+/)[0],
-            releaseDate: new Date().toISOString(),
+      const pages = await page.$$eval(
+        ".reading-detail.box_doc .page-chapter img",
+        (elements) =>
+          elements.map((el) => ({
+            imageUrl: el.getAttribute("data-src"),
           }))
       );
+      // Đảm bảo các trường imageUrl và chapterId được cập nhật đúng
+      const updatedPages = await Promise.all(
+        pages.map(async (pageData) => {
+          const thumbPath = `/uploads/pages/${
+            pageData.imageUrl.split("/nettruyen/")[1]
+          }`;
+          const dir = `.${thumbPath}`.split("/").slice(0, -1).join("/");
+          if (!fs.existsSync(dir)) {
+            fs.mkdirSync(dir, { recursive: true });
+          }
+          await downloadImage(
+            pageData.imageUrl,
+            `.${thumbPath}`,
+            "https://nettruyenvia.com/"
+          );
+          return {
+            ...pageData,
+            imageUrl: thumbPath,
+            chapterId: id,
+            comicId,
+          };
+        })
+      );
 
-      const chapterLinksWithId = chapterLinks.map((item) => ({
-        ...item,
-        comicId: id,
-        slug: slugify(item.title, { lower: true }),
-        url: item.url.startsWith("http")
-          ? item.url
-          : `https://nettruyenvia.com${item.url}`,
-      }));
-
-      await Chapter.bulkCreate(chapterLinksWithId, {
-        updateOnDuplicate: ["title", "slug", "url", "chapterIndex"],
+      await Page.bulkCreate(updatedPages, {
+        updateOnDuplicate: ["imageUrl", "chapterId", "comicId"],
       });
 
       console.log(`Crawled successfully: ${url}`);
 
-      if (fs.existsSync(detailChaptersFile)) {
-        let arr = JSON.parse(fs.readFileSync(detailChaptersFile, "utf8"));
-        arr = arr.filter(
-          (item) => !(item.id === id && item.originalUrl === url)
-        );
-        fs.writeFileSync(detailChaptersFile, JSON.stringify(arr, null, 2));
+      if (fs.existsSync(detailPagesFile)) {
+        let arr = JSON.parse(fs.readFileSync(detailPagesFile, "utf8"));
+        arr = arr.filter((item) => !(item.id === id && item.url === url));
+        fs.writeFileSync(detailPagesFile, JSON.stringify(arr, null, 2));
       }
     } catch (error) {
       console.error("Lỗi khi lấy chapters:", error);
@@ -114,7 +125,8 @@ const startCrawling = async (urlsIds) => {
   urlsIds.forEach((urlId) =>
     cluster.queue({
       id: urlId.id,
-      url: urlId.originalUrl,
+      url: urlId.url,
+      comicId: urlId.comicId,
     })
   );
 
@@ -124,21 +136,21 @@ const startCrawling = async (urlsIds) => {
 
 (async () => {
   let urlsIds = [];
-  if (fs.existsSync(detailChaptersFile)) {
+  if (fs.existsSync(detailPagesFile)) {
     // Đọc từ file nếu đã tồn tại
     try {
-      urlsIds = JSON.parse(fs.readFileSync(detailChaptersFile, "utf8"));
+      urlsIds = JSON.parse(fs.readFileSync(detailPagesFile, "utf8"));
     } catch (e) {
       console.error("Lỗi đọc file detail_chapters.txt:", e);
       process.exit(1);
     }
   } else {
     // Lấy từ DB, ghi ra file
-    urlsIds = await Comic.findAll({
-      attributes: ["id", "originalUrl"],
+    urlsIds = await Chapter.findAll({
+      attributes: ["id", "url", "comicId"],
       raw: true,
     });
-    fs.writeFileSync(detailChaptersFile, JSON.stringify(urlsIds, null, 2));
+    fs.writeFileSync(detailPagesFile, JSON.stringify(urlsIds, null, 2));
   }
   await startCrawling(urlsIds);
 })();

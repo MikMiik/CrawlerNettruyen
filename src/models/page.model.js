@@ -10,7 +10,8 @@ module.exports = (sequelize, DataTypes) => {
     {
       id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
       chapterId: { type: DataTypes.INTEGER, allowNull: false },
-      url: { type: DataTypes.STRING, allowNull: false },
+      comicId: { type: DataTypes.INTEGER, allowNull: false },
+      imageUrl: { type: DataTypes.STRING, allowNull: false },
       createdAt: DataTypes.DATE,
       updatedAt: DataTypes.DATE,
       deletedAt: DataTypes.DATE,
