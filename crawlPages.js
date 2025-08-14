@@ -56,7 +56,19 @@ const startCrawling = async (urlsIds) => {
       const viewMore = await page.$("#chapter_list + .view-more");
       if (viewMore) {
         await viewMore.click();
-        await page.waitForSelector("#chapter_list.active", { timeout: 10000 });
+        await page.waitForFunction(
+          () => {
+            const chapter1 = document.querySelector(
+              "#chapter_list li:last-child a"
+            );
+            return (
+              chapter1 &&
+              (chapter1.innerText.trim() === "Chapter 1" ||
+                chapter1.innerText.trim() === "Chapter 0")
+            );
+          },
+          { timeout: 5000 }
+        );
       }
 
       const chapterLinks = await page.$$eval(
