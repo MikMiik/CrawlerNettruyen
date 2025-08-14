@@ -49,37 +49,41 @@ const startCrawling = async (urlsIds) => {
         });
       } catch (gotoErr) {
         console.error(`Error navigating to ${url}:`, gotoErr);
-        // Thoát tiến trình ngay khi gặp lỗi navigation (timeout, bị chặn, ...)
         process.exit(1);
       }
 
-      await page.waitForSelector("#chapter_list", { timeout: 7000 });
-      const viewMore = await page.$("#chapter_list + .view-more");
-      if (viewMore) {
-        await viewMore.click();
-        await page.waitForFunction(() => {
-          const chapter1 = document.querySelector(
-            "#chapter_list li:last-child a"
+      try {
+        await page.waitForSelector("#chapter_list", { timeout: 7000 });
+        const viewMore = await page.$("#chapter_list + .view-more");
+        if (viewMore) {
+          await viewMore.click();
+          await page.waitForFunction(
+            () => {
+              const chapter1 = document.querySelector(
+                "#chapter_list li:last-child a"
+              );
+              return chapter1 && chapter1.innerText.trim() === "Chapter 1";
+            },
+            { timeout: 7000 }
           );
-          return chapter1 && chapter1.innerText.trim() === "Chapter 1";
-        });
+        }
+      } catch (waitErr) {
+        console.error("Error when expanding chapter list:", waitErr);
+        process.exit(1);
       }
 
       const chapterLinks = await page.$$eval(
         "#chapter_list .chapter > a",
         (links) =>
           links.map((link) => ({
-            // comicId sẽ được gán ở ngoài
             title: link.innerText.trim(),
-            slug: link.innerText.trim(), // slug sẽ xử lý ở ngoài
+            slug: link.innerText.trim(),
             url: link.href,
             chapterIndex: link.innerText.match(/[\d.]+/)[0],
-
             releaseDate: new Date().toISOString(),
           }))
       );
 
-      // Gán lại comicId và slug ngoài context browser
       const chapterLinksWithId = chapterLinks.map((item) => ({
         ...item,
         comicId: id,
@@ -95,7 +99,6 @@ const startCrawling = async (urlsIds) => {
 
       console.log(`Crawled successfully: ${url}`);
 
-      // Xóa url/id thành công khỏi file detail_chapters.txt
       if (fs.existsSync(detailChaptersFile)) {
         let arr = JSON.parse(fs.readFileSync(detailChaptersFile, "utf8"));
         arr = arr.filter(
@@ -105,7 +108,6 @@ const startCrawling = async (urlsIds) => {
       }
     } catch (error) {
       console.error("Lỗi khi lấy chapters:", error);
-      // Thoát tiến trình nếu có lỗi bất kỳ trong task
       process.exit(1);
     }
   });
