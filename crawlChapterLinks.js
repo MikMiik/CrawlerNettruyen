@@ -74,7 +74,7 @@ const startCrawling = async (urlsIds) => {
             slug: link.innerText.trim(), // slug sẽ xử lý ở ngoài
             url: link.href,
             chapterIndex: parseInt(
-              link.innerText.trim().replace(/\D/g, ""),
+              link.innerText.trim().match(/[\d.]+/)[0],
               10
             ),
             releaseDate: new Date().toISOString(),
