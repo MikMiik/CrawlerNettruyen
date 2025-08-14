@@ -45,14 +45,14 @@ const startCrawling = async (urlsIds) => {
       try {
         await page.goto(url, {
           waitUntil: "load",
-          timeout: 15000,
+          timeout: 5000,
         });
       } catch (gotoErr) {
         console.error(`Error navigating to ${url}:`, gotoErr);
         process.exit(1);
       }
 
-      await page.waitForSelector("#chapter_list", { timeout: 15000 });
+      await page.waitForSelector("#chapter_list", { timeout: 5000 });
       const viewMore = await page.$("#chapter_list + .view-more");
       if (viewMore) {
         await viewMore.click();
@@ -61,9 +61,13 @@ const startCrawling = async (urlsIds) => {
             const chapter1 = document.querySelector(
               "#chapter_list li:last-child a"
             );
-            return chapter1 && chapter1.innerText.trim() === "Chapter 1";
+            return (
+              chapter1 &&
+              (chapter1.innerText.trim() === "Chapter 1" ||
+                chapter1.innerText.trim() === "Chapter 0")
+            );
           },
-          { timeout: 15000 }
+          { timeout: 5000 }
         );
       }
 
