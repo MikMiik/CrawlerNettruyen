@@ -11,7 +11,7 @@ module.exports = (sequelize, DataTypes) => {
     {
       id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
       comicId: { type: DataTypes.INTEGER, allowNull: false },
-      name: { type: DataTypes.STRING, allowNull: false },
+      title: { type: DataTypes.STRING, allowNull: true },
       url: { type: DataTypes.STRING, allowNull: true },
       slug: { type: DataTypes.STRING, allowNull: true },
       chapterIndex: { type: DataTypes.STRING(50), allowNull: false },
