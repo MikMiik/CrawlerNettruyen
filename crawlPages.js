@@ -35,7 +35,7 @@ const startCrawling = async (urlsIds) => {
     maxConcurrency: 2,
     puppeteer: puppeteerExtra,
     puppeteerOptions: {
-      headless: false,
+      headless: true,
       defaultViewport: false,
     },
     args: [
@@ -60,15 +60,32 @@ const startCrawling = async (urlsIds) => {
     console.log(`Crawling URL: ${url} with ID: ${id}`);
     await page.setUserAgent(getRandomUserAgent());
     try {
-      // Navigate the page to a URL.
-      try {
-        await page.goto(url, {
-          waitUntil: "load",
-          timeout: 15000,
-        });
-      } catch (gotoErr) {
-        console.error(`Error navigating to ${url}:`, gotoErr);
-        process.exit(1);
+      // Retry page.goto tối đa 2 lần nếu bị timeout
+      let gotoSuccess = false;
+      let lastError = null;
+      for (let attempt = 1; attempt <= 2; attempt++) {
+        try {
+          await page.goto(url, {
+            waitUntil: "load",
+            timeout: 40000,
+          });
+          gotoSuccess = true;
+          break;
+        } catch (gotoErr) {
+          lastError = gotoErr;
+          console.error(
+            `Lần thử ${attempt} - Error navigating to ${url}:`,
+            gotoErr.message
+          );
+          if (attempt < 2 && String(gotoErr).includes("TimeoutError")) {
+            console.log("Thử lại...");
+            await new Promise((r) => setTimeout(r, 2000));
+          }
+        }
+      }
+      if (!gotoSuccess) {
+        console.error(`Không thể truy cập ${url} sau 2 lần thử. Bỏ qua.`);
+        return;
       }
       await scrollToBottom(page);
       await page.waitForNetworkIdle({ idleTime: 2000, timeout: 15000 });
