@@ -1,9 +1,6 @@
 const { Cluster } = require("puppeteer-cluster");
 const { Chapter, Page } = require("./src/models");
 
-// Đổi proxy tại đây, ví dụ: "http://user:pass@host:port" hoặc để "" nếu không dùng proxy
-const PROXY = "http://113.160.132.195:8080";
-
 const fs = require("fs");
 const getRandomUserAgent = require("./utils/getRandomUserAgent");
 const detailPagesFile = "./detail_pages.txt";
@@ -33,21 +30,6 @@ const scrollToBottom = async (page, step = 400, delay = 10) => {
 };
 
 const startCrawling = async (urlsIds) => {
-  const baseArgs = [
-    "--no-sandbox",
-    "--disable-setuid-sandbox",
-    "--disable-dev-shm-usage",
-    "--disable-accelerated-2d-canvas",
-    "--disable-gpu",
-    "--disable-blink-features=AutomationControlled",
-    "--disable-infobars",
-    "--disable-web-security",
-    "--disable-features=IsolateOrigins,site-per-process",
-  ];
-  if (PROXY) {
-    baseArgs.push(`--proxy-server=${PROXY}`);
-    console.log(`Đang sử dụng proxy: ${PROXY}`);
-  }
   const cluster = await Cluster.launch({
     concurrency: Cluster.CONCURRENCY_PAGE,
     maxConcurrency: 2,
@@ -56,7 +38,17 @@ const startCrawling = async (urlsIds) => {
       headless: true,
       defaultViewport: false,
     },
-    args: baseArgs,
+    args: [
+      "--no-sandbox",
+      "--disable-setuid-sandbox",
+      "--disable-dev-shm-usage",
+      "--disable-accelerated-2d-canvas",
+      "--disable-gpu",
+      "--disable-blink-features=AutomationControlled",
+      "--disable-infobars",
+      "--disable-web-security",
+      "--disable-features=IsolateOrigins,site-per-process",
+    ],
   });
   // Bắt lỗi trong cluster và thoát tiến trình để pm2 restart lại toàn bộ file
   cluster.on("taskerror", (err, data) => {
