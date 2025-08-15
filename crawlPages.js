@@ -59,10 +59,38 @@ const startCrawling = async (urlsIds) => {
   await cluster.task(async ({ page, data: { id, url, comicId } }) => {
     console.log(`Crawling URL: ${url} with ID: ${id}`);
     await page.setUserAgent(getRandomUserAgent());
+    // Hàm ghi lỗi vào error_pages.txt, không trùng lặp
+    const saveErrorPage = async () => {
+      const errorFile = "./error_pages.txt";
+      let arr = [];
+      if (fs.existsSync(errorFile)) {
+        try {
+          arr = JSON.parse(fs.readFileSync(errorFile, "utf8"));
+        } catch {}
+      }
+      if (!arr.some((e) => e.id === id && e.url === url)) {
+        arr.push({ id, url, comicId });
+        fs.writeFileSync(errorFile, JSON.stringify(arr, null, 2));
+        console.warn(`Đã ghi lỗi vào error_pages.txt: ${url}`);
+      }
+      // Xóa khỏi detail_pages.txt nếu có
+      const detailFile = "./detail_pages.txt";
+      if (fs.existsSync(detailFile)) {
+        try {
+          let detailArr = JSON.parse(fs.readFileSync(detailFile, "utf8"));
+          const newArr = detailArr.filter(
+            (item) => !(item.id === id && item.url === url)
+          );
+          if (newArr.length !== detailArr.length) {
+            fs.writeFileSync(detailFile, JSON.stringify(newArr, null, 2));
+            console.warn(`Đã xóa khỏi detail_pages.txt: ${url}`);
+          }
+        } catch {}
+      }
+    };
     try {
       // Retry page.goto tối đa 2 lần nếu bị timeout
       let gotoSuccess = false;
-      let lastError = null;
       let response = null;
       for (let attempt = 1; attempt <= 2; attempt++) {
         try {
@@ -86,6 +114,7 @@ const startCrawling = async (urlsIds) => {
       }
       if (!gotoSuccess) {
         console.error(`Không thể truy cập ${url} sau 2 lần thử.`);
+        await saveErrorPage();
         return;
       }
       // Kiểm tra status code và nội dung trả về để phát hiện bị chặn
@@ -95,6 +124,8 @@ const startCrawling = async (urlsIds) => {
           console.warn(
             `CẢNH BÁO: IP/proxy có thể đã bị chặn! Status code: ${status} tại ${url}`
           );
+          await saveErrorPage();
+          return;
         }
         const content = await page.content();
         if (
@@ -106,61 +137,78 @@ const startCrawling = async (urlsIds) => {
           console.warn(
             `CẢNH BÁO: Nội dung trả về nghi ngờ bị chặn/captcha tại ${url}`
           );
+          await saveErrorPage();
+          return;
         }
       }
-      await scrollToBottom(page);
-      await page.waitForNetworkIdle({ idleTime: 2000, timeout: 15000 });
-      await page.waitForSelector(".reading-detail.box_doc", { timeout: 5000 });
+      try {
+        await scrollToBottom(page);
+        await page.waitForNetworkIdle({ idleTime: 2000, timeout: 15000 });
+        await page.waitForSelector(".reading-detail.box_doc", {
+          timeout: 5000,
+        });
 
-      const pages = await page.$$eval(
-        ".reading-detail.box_doc .page-chapter img",
-        (elements) =>
-          elements.map((el) => ({
-            imageUrl: el.getAttribute("data-src"),
-          }))
-      );
+        const pages = await page.$$eval(
+          ".reading-detail.box_doc .page-chapter img",
+          (elements) =>
+            elements.map((el) => ({
+              imageUrl: el.getAttribute("data-src"),
+            }))
+        );
 
-      // Tạo thư mục chứa ảnh cho chapter
-      const baseFolder = url.split("/truyen-tranh/")[1];
-
-      const chapterDir = `./uploads/pages/${baseFolder}`;
-      if (!fs.existsSync(chapterDir)) {
-        fs.mkdirSync(chapterDir, { recursive: true });
-      }
-
-      // Download tất cả ảnh với tên file theo thứ tự 0.jpg, 1.jpg, 2.jpg...
-      const imageUrls = [];
-      await Promise.all(
-        pages.map(async (pageData) => {
-          const fileName = pageData.imageUrl.split("/").pop();
-          const filePath = `${chapterDir}/${fileName}`;
-
-          const newfilePath = await downloadImage(
-            pageData.imageUrl,
-            filePath,
-            "https://nettruyenvia.com/"
+        if (!pages || !Array.isArray(pages) || pages.length === 0) {
+          throw new Error(
+            "Không lấy được danh sách ảnh hoặc không có ảnh nào."
           );
-          imageUrls.push(newfilePath);
-        })
-      );
+        }
 
-      // Lưu một record duy nhất cho chapter với imageUrl là mảng JSON
-      await Page.upsert({
-        imageUrl: imageUrls,
-        chapterId: id,
-        comicId,
-      });
+        // Tạo thư mục chứa ảnh cho chapter
+        const baseFolder = url.split("/truyen-tranh/")[1];
 
-      console.log(`Crawled successfully: ${url}`);
+        const chapterDir = `./uploads/pages/${baseFolder}`;
+        if (!fs.existsSync(chapterDir)) {
+          fs.mkdirSync(chapterDir, { recursive: true });
+        }
 
-      if (fs.existsSync(detailPagesFile)) {
-        let arr = JSON.parse(fs.readFileSync(detailPagesFile, "utf8"));
-        arr = arr.filter((item) => !(item.id === id && item.url === url));
-        fs.writeFileSync(detailPagesFile, JSON.stringify(arr, null, 2));
+        // Download tất cả ảnh với tên file theo thứ tự 0.jpg, 1.jpg, 2.jpg...
+        const imageUrls = [];
+        await Promise.all(
+          pages.map(async (pageData) => {
+            const fileName = pageData.imageUrl.split("/").pop();
+            const filePath = `${chapterDir}/${fileName}`;
+
+            const newfilePath = await downloadImage(
+              pageData.imageUrl,
+              filePath,
+              "https://nettruyenvia.com/"
+            );
+            imageUrls.push(newfilePath);
+          })
+        );
+
+        // Lưu một record duy nhất cho chapter với imageUrl là mảng JSON
+        await Page.upsert({
+          imageUrl: imageUrls,
+          chapterId: id,
+          comicId,
+        });
+
+        console.log(`Crawled successfully: ${url}`);
+
+        if (fs.existsSync(detailPagesFile)) {
+          let arr = JSON.parse(fs.readFileSync(detailPagesFile, "utf8"));
+          arr = arr.filter((item) => !(item.id === id && item.url === url));
+          fs.writeFileSync(detailPagesFile, JSON.stringify(arr, null, 2));
+        }
+      } catch (err) {
+        console.error(`Lỗi khi crawl/lưu ảnh/ghi DB:`, err);
+        await saveErrorPage();
+        return;
       }
     } catch (error) {
-      console.error("Lỗi khi lấy pages:", error);
-      process.exit(1);
+      console.error("Lỗi không xác định khi crawl:", error);
+      await saveErrorPage();
+      return;
     }
   });
 
@@ -194,7 +242,18 @@ const startCrawling = async (urlsIds) => {
     });
     fs.writeFileSync(detailPagesFile, JSON.stringify(urlsIds, null, 2));
   }
-  await startCrawling(urlsIds);
+  await startCrawling([
+    {
+      id: 805,
+      url: "https://nettruyenvia.com/truyen-tranh/su-tro-lai-cua-phap-su-vi-dai-sau-4000-nam/chapter-217",
+      comicId: 5,
+    },
+    {
+      id: 806,
+      url: "https://nettruyenvia.com/truyen-tranh/su-tro-lai-cua-phap-su-vi-dai-sau-4000-nam/chapter-216",
+      comicId: 5,
+    },
+  ]);
 })();
 
 process.on("unhandledRejection", (err) => {
