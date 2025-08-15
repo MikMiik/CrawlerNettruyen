@@ -63,9 +63,10 @@ const startCrawling = async (urlsIds) => {
       // Retry page.goto tối đa 2 lần nếu bị timeout
       let gotoSuccess = false;
       let lastError = null;
+      let response = null;
       for (let attempt = 1; attempt <= 2; attempt++) {
         try {
-          await page.goto(url, {
+          response = await page.goto(url, {
             waitUntil: "load",
             timeout: 40000,
           });
@@ -85,12 +86,9 @@ const startCrawling = async (urlsIds) => {
       }
       if (!gotoSuccess) {
         console.error(`Không thể truy cập ${url} sau 2 lần thử.`);
+        return;
       }
       // Kiểm tra status code và nội dung trả về để phát hiện bị chặn
-      const response = await page.goto(url, {
-        waitUntil: "load",
-        timeout: 40000,
-      });
       if (response) {
         const status = response.status();
         if ([403, 429, 503].includes(status)) {
