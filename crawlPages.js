@@ -35,7 +35,7 @@ const startCrawling = async (urlsIds) => {
     maxConcurrency: 2,
     puppeteer: puppeteerExtra,
     puppeteerOptions: {
-      headless: true,
+      headless: false,
       defaultViewport: false,
     },
     args: [
@@ -48,7 +48,6 @@ const startCrawling = async (urlsIds) => {
       "--disable-infobars",
       "--disable-web-security",
       "--disable-features=IsolateOrigins,site-per-process",
-      "--disable-cache",
     ],
   });
   // Bắt lỗi trong cluster và thoát tiến trình để pm2 restart lại toàn bộ file
