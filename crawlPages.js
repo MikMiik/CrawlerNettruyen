@@ -84,8 +84,7 @@ const startCrawling = async (urlsIds) => {
         }
       }
       if (!gotoSuccess) {
-        console.error(`Không thể truy cập ${url} sau 2 lần thử. Bỏ qua.`);
-        return;
+        console.error(`Không thể truy cập ${url} sau 2 lần thử.`);
       }
       // Kiểm tra status code và nội dung trả về để phát hiện bị chặn
       const response = await page.goto(url, {
