@@ -10,19 +10,17 @@ const StealthPlugin = require("puppeteer-extra-plugin-stealth");
 const downloadImage = require("./utils/downloadImage");
 puppeteerExtra.use(StealthPlugin());
 
-const scrollToBottom = async (page, step = 200, delay = 20) => {
-  await page.evaluate(
+const scrollToBottom = async (page, step = 150, delay = 30) => {
+  return await page.evaluate(
     async (step, delay) => {
       const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-
-      let totalHeight = 0;
-      let distance = step;
-
-      while (totalHeight < document.body.scrollHeight) {
-        window.scrollBy(0, distance);
-        totalHeight += distance;
+      while (window.innerHeight + window.scrollY < document.body.scrollHeight) {
+        window.scrollBy(0, step);
         await sleep(delay);
       }
+      // Đảm bảo cuộn đúng đáy trang
+      window.scrollTo(0, document.body.scrollHeight);
+      return true;
     },
     step,
     delay
@@ -35,7 +33,7 @@ const startCrawling = async (urlsIds) => {
     maxConcurrency: 2,
     puppeteer: puppeteerExtra,
     puppeteerOptions: {
-      headless: true,
+      headless: false,
       defaultViewport: false,
     },
     args: [
@@ -49,6 +47,7 @@ const startCrawling = async (urlsIds) => {
       "--disable-web-security",
       "--disable-features=IsolateOrigins,site-per-process",
     ],
+    timeout: 60000, // 2 phút cho mỗi task
   });
   // Bắt lỗi trong cluster và thoát tiến trình để pm2 restart lại toàn bộ file
   cluster.on("taskerror", (err, data) => {
@@ -100,10 +99,13 @@ const startCrawling = async (urlsIds) => {
       }
 
       try {
-        await scrollToBottom(page);
+        const scrolled = await scrollToBottom(page);
+        if (!scrolled) {
+          throw new Error("Chưa cuộn hết trang, dừng crawl!");
+        }
         await page.waitForNetworkIdle({ idleTime: 2000, timeout: 15000 });
         await page.waitForSelector(".reading-detail.box_doc", {
-          timeout: 5000,
+          timeout: 10000,
         });
 
         const pages = await page.$$eval(
