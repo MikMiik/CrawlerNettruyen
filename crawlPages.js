@@ -30,7 +30,7 @@ const scrollToBottom = async (page, step = 150, delay = 30) => {
 const startCrawling = async (urlsIds) => {
   const cluster = await Cluster.launch({
     concurrency: Cluster.CONCURRENCY_PAGE,
-    maxConcurrency: 2,
+    maxConcurrency: 50,
     puppeteer: puppeteerExtra,
     puppeteerOptions: {
       headless: true,
@@ -47,7 +47,7 @@ const startCrawling = async (urlsIds) => {
       "--disable-web-security",
       "--disable-features=IsolateOrigins,site-per-process",
     ],
-    timeout: 60000, // 2 phút cho mỗi task
+    timeout: 120000, // 1 phút cho mỗi task
   });
   // Bắt lỗi trong cluster và thoát tiến trình để pm2 restart lại toàn bộ file
   cluster.on("taskerror", (err, data) => {
@@ -91,7 +91,7 @@ const startCrawling = async (urlsIds) => {
       try {
         await page.goto(url, {
           waitUntil: "load",
-          timeout: 15000,
+          timeout: 120000,
         });
       } catch (gotoErr) {
         lastError = gotoErr;
@@ -103,9 +103,9 @@ const startCrawling = async (urlsIds) => {
         if (!scrolled) {
           throw new Error("Chưa cuộn hết trang, dừng crawl!");
         }
-        await page.waitForNetworkIdle({ idleTime: 2000, timeout: 15000 });
+        await page.waitForNetworkIdle({ idleTime: 2000, timeout: 120000 });
         await page.waitForSelector(".reading-detail.box_doc", {
-          timeout: 10000,
+          timeout: 120000,
         });
 
         const pages = await page.$$eval(
