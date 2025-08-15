@@ -30,7 +30,7 @@ const scrollToBottom = async (page, step = 150, delay = 30) => {
 const startCrawling = async (urlsIds) => {
   const cluster = await Cluster.launch({
     concurrency: Cluster.CONCURRENCY_PAGE,
-    maxConcurrency: 5,
+    maxConcurrency: 2,
     puppeteer: puppeteerExtra,
     puppeteerOptions: {
       headless: true,
@@ -202,28 +202,7 @@ const startCrawling = async (urlsIds) => {
     });
     fs.writeFileSync(detailPagesFile, JSON.stringify(urlsIds, null, 2));
   }
-  await startCrawling([
-    {
-      id: 805,
-      url: "https://nettruyenvia.com/truyen-tranh/su-tro-lai-cua-phap-su-vi-dai-sau-4000-nam/chapter-217",
-      comicId: 5,
-    },
-    {
-      id: 806,
-      url: "https://nettruyenvia.com/truyen-tranh/su-tro-lai-cua-phap-su-vi-dai-sau-4000-nam/chapter-216",
-      comicId: 5,
-    },
-    {
-      id: 807,
-      url: "https://nettruyenvia.com/truyen-tranh/su-tro-lai-cua-phap-su-vi-dai-sau-4000-nam/chapter-215",
-      comicId: 5,
-    },
-    {
-      id: 808,
-      url: "https://nettruyenvia.com/truyen-tranh/su-tro-lai-cua-phap-su-vi-dai-sau-4000-nam/chapter-214",
-      comicId: 5,
-    },
-  ]);
+  await startCrawling(urlsIds);
 })();
 
 process.on("unhandledRejection", (err) => {
