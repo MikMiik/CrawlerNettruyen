@@ -137,21 +137,13 @@ const startCrawling = async (urlsIds) => {
             const fileName = pageData.imageUrl.split("/").pop();
             const filePath = `${chapterDir}/${fileName}`;
 
-            const newfilePath = await downloadImage(
+            await downloadImage(
               pageData.imageUrl,
               filePath,
               "https://nettruyenvia.com/"
             );
-            imageUrls.push(newfilePath);
           })
         );
-
-        // Lưu một record duy nhất cho chapter với imageUrl là mảng JSON
-        await Page.upsert({
-          imageUrl: imageUrls,
-          chapterId: id,
-          comicId,
-        });
 
         console.log(`Crawled successfully: ${url}`);
 
