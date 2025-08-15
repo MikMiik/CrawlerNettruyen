@@ -30,10 +30,10 @@ const scrollToBottom = async (page, step = 150, delay = 30) => {
 const startCrawling = async (urlsIds) => {
   const cluster = await Cluster.launch({
     concurrency: Cluster.CONCURRENCY_PAGE,
-    maxConcurrency: 2,
+    maxConcurrency: 5,
     puppeteer: puppeteerExtra,
     puppeteerOptions: {
-      headless: false,
+      headless: true,
       defaultViewport: false,
     },
     args: [
