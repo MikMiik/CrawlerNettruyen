@@ -10,7 +10,7 @@ const StealthPlugin = require("puppeteer-extra-plugin-stealth");
 const downloadImage = require("./utils/downloadImage");
 puppeteerExtra.use(StealthPlugin());
 
-const scrollToBottom = async (page, step = 400, delay = 10) => {
+const scrollToBottom = async (page, step = 200, delay = 20) => {
   await page.evaluate(
     async (step, delay) => {
       const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -35,7 +35,7 @@ const startCrawling = async (urlsIds) => {
     maxConcurrency: 2,
     puppeteer: puppeteerExtra,
     puppeteerOptions: {
-      headless: false,
+      headless: true,
       defaultViewport: false,
     },
     args: [
