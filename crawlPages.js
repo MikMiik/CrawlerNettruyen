@@ -87,6 +87,30 @@ const startCrawling = async (urlsIds) => {
         console.error(`Không thể truy cập ${url} sau 2 lần thử. Bỏ qua.`);
         return;
       }
+      // Kiểm tra status code và nội dung trả về để phát hiện bị chặn
+      const response = await page.goto(url, {
+        waitUntil: "load",
+        timeout: 40000,
+      });
+      if (response) {
+        const status = response.status();
+        if ([403, 429, 503].includes(status)) {
+          console.warn(
+            `CẢNH BÁO: IP/proxy có thể đã bị chặn! Status code: ${status} tại ${url}`
+          );
+        }
+        const content = await page.content();
+        if (
+          content.includes("captcha") ||
+          content.toLowerCase().includes("cloudflare") ||
+          content.toLowerCase().includes("access denied") ||
+          content.toLowerCase().includes("forbidden")
+        ) {
+          console.warn(
+            `CẢNH BÁO: Nội dung trả về nghi ngờ bị chặn/captcha tại ${url}`
+          );
+        }
+      }
       await scrollToBottom(page);
       await page.waitForNetworkIdle({ idleTime: 2000, timeout: 15000 });
       await page.waitForSelector(".reading-detail.box_doc", { timeout: 5000 });
