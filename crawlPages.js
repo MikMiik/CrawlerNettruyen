@@ -35,7 +35,7 @@ const startCrawling = async (urlsIds) => {
     maxConcurrency: 2,
     puppeteer: puppeteerExtra,
     puppeteerOptions: {
-      headless: true,
+      headless: false,
       defaultViewport: false,
     },
     args: [
@@ -89,58 +89,16 @@ const startCrawling = async (urlsIds) => {
       }
     };
     try {
-      // Retry page.goto tối đa 2 lần nếu bị timeout
-      let gotoSuccess = false;
-      let response = null;
-      for (let attempt = 1; attempt <= 2; attempt++) {
-        try {
-          response = await page.goto(url, {
-            waitUntil: "load",
-            timeout: 40000,
-          });
-          gotoSuccess = true;
-          break;
-        } catch (gotoErr) {
-          lastError = gotoErr;
-          console.error(
-            `Lần thử ${attempt} - Error navigating to ${url}:`,
-            gotoErr.message
-          );
-          if (attempt < 2 && String(gotoErr).includes("TimeoutError")) {
-            console.log("Thử lại...");
-            await new Promise((r) => setTimeout(r, 2000));
-          }
-        }
+      try {
+        await page.goto(url, {
+          waitUntil: "load",
+          timeout: 15000,
+        });
+      } catch (gotoErr) {
+        lastError = gotoErr;
+        console.error("Lỗi truy cập", gotoErr.message);
       }
-      if (!gotoSuccess) {
-        console.error(`Không thể truy cập ${url} sau 2 lần thử.`);
-        await saveErrorPage();
-        return;
-      }
-      // Kiểm tra status code và nội dung trả về để phát hiện bị chặn
-      if (response) {
-        const status = response.status();
-        if ([403, 429, 503].includes(status)) {
-          console.warn(
-            `CẢNH BÁO: IP/proxy có thể đã bị chặn! Status code: ${status} tại ${url}`
-          );
-          await saveErrorPage();
-          return;
-        }
-        const content = await page.content();
-        if (
-          content.includes("captcha") ||
-          content.toLowerCase().includes("cloudflare") ||
-          content.toLowerCase().includes("access denied") ||
-          content.toLowerCase().includes("forbidden")
-        ) {
-          console.warn(
-            `CẢNH BÁO: Nội dung trả về nghi ngờ bị chặn/captcha tại ${url}`
-          );
-          await saveErrorPage();
-          return;
-        }
-      }
+
       try {
         await scrollToBottom(page);
         await page.waitForNetworkIdle({ idleTime: 2000, timeout: 15000 });
@@ -251,6 +209,16 @@ const startCrawling = async (urlsIds) => {
     {
       id: 806,
       url: "https://nettruyenvia.com/truyen-tranh/su-tro-lai-cua-phap-su-vi-dai-sau-4000-nam/chapter-216",
+      comicId: 5,
+    },
+    {
+      id: 807,
+      url: "https://nettruyenvia.com/truyen-tranh/su-tro-lai-cua-phap-su-vi-dai-sau-4000-nam/chapter-215",
+      comicId: 5,
+    },
+    {
+      id: 808,
+      url: "https://nettruyenvia.com/truyen-tranh/su-tro-lai-cua-phap-su-vi-dai-sau-4000-nam/chapter-214",
       comicId: 5,
     },
   ]);
