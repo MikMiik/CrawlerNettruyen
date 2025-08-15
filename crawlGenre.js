@@ -12,6 +12,7 @@ puppeteer.use(StealthPlugin());
   const browser = await puppeteer.launch({
     headless: true,
     defaultViewport: false,
+    userDataDir: "/home/blog-user/puppeteer-cache",
     args: [
       "--no-sandbox",
       "--disable-setuid-sandbox",

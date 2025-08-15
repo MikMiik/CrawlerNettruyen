@@ -37,6 +37,7 @@ const startCrawling = async (urlsIds) => {
     puppeteerOptions: {
       headless: true,
       defaultViewport: false,
+      userDataDir: "/home/blog-user/puppeteer-cache",
     },
     args: [
       "--no-sandbox",

@@ -22,6 +22,7 @@ if (fs.existsSync(pageFile)) {
     headless: true,
     executablePath: process.env.CHROME_PATH || "/usr/bin/google-chrome-stable",
     defaultViewport: false,
+    userDataDir: "/home/blog-user/puppeteer-cache",
     args: [
       "--no-sandbox",
       "--disable-setuid-sandbox",
