@@ -1,6 +1,7 @@
 const axios = require("axios");
 const fs = require("fs");
 const path = require("path");
+const sharp = require("sharp");
 
 async function downloadImage(url, filePath, referer) {
   try {
@@ -20,11 +21,26 @@ async function downloadImage(url, filePath, referer) {
       validateStatus: (status) => status >= 200 && status < 300, // chỉ nhận ảnh thành công
     });
 
-    response.data.pipe(fs.createWriteStream(filePath));
-    return new Promise((resolve, reject) => {
-      response.data.on("end", () => resolve(filePath));
-      response.data.on("error", (err) => reject(err));
+    if (!/^image\//.test(response.headers["content-type"] || "")) {
+      console.warn(`Invalid image type for ${url}`);
+      return null;
+    }
+
+    const webpPath = filePath.replace(/\.[^/.]+$/, ".webp");
+
+    await new Promise((resolve, reject) => {
+      response.data
+        .pipe(
+          sharp()
+            .resize({ width: 2000, withoutEnlargement: true })
+            .webp({ quality: 75 })
+        )
+        .pipe(fs.createWriteStream(webpPath))
+        .on("finish", resolve)
+        .on("error", reject);
     });
+
+    return webpPath;
   } catch (err) {
     console.error(`Error downloading ${url}: ${err.message}`);
     // Nếu lỗi 404 hoặc không tải được ảnh thì bỏ qua, không throw

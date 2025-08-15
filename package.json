@@ -13,6 +13,7 @@
     "puppeteer-extra": "^3.3.6",
     "puppeteer-extra-plugin-stealth": "^2.11.2",
     "sequelize": "^6.37.7",
+    "sharp": "^0.34.3",
     "slugify": "^1.6.6"
   },
   "devDependencies": {

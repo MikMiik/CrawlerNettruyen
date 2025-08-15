@@ -32,7 +32,7 @@ const scrollToBottom = async (page, step = 400, delay = 10) => {
 const startCrawling = async (urlsIds) => {
   const cluster = await Cluster.launch({
     concurrency: Cluster.CONCURRENCY_PAGE,
-    maxConcurrency: 10,
+    maxConcurrency: 5,
     puppeteer: puppeteerExtra,
     puppeteerOptions: {
       headless: true,
@@ -64,14 +64,14 @@ const startCrawling = async (urlsIds) => {
       try {
         await page.goto(url, {
           waitUntil: "load",
-          timeout: 5000,
+          timeout: 15000,
         });
       } catch (gotoErr) {
         console.error(`Error navigating to ${url}:`, gotoErr);
         process.exit(1);
       }
       await scrollToBottom(page);
-      await page.waitForNetworkIdle({ idleTime: 2000, timeout: 10000 });
+      await page.waitForNetworkIdle({ idleTime: 2000, timeout: 15000 });
       await page.waitForSelector(".reading-detail.box_doc", { timeout: 5000 });
 
       const pages = await page.$$eval(
@@ -97,12 +97,12 @@ const startCrawling = async (urlsIds) => {
           const fileName = pageData.imageUrl.split("/").pop();
           const filePath = `${chapterDir}/${fileName}`;
 
-          await downloadImage(
+          const newfilePath = await downloadImage(
             pageData.imageUrl,
             filePath,
             "https://nettruyenvia.com/"
           );
-          imageUrls.push(filePath);
+          imageUrls.push(newfilePath);
         })
       );
 
@@ -121,7 +121,7 @@ const startCrawling = async (urlsIds) => {
         fs.writeFileSync(detailPagesFile, JSON.stringify(arr, null, 2));
       }
     } catch (error) {
-      console.error("Lỗi khi lấy chapters:", error);
+      console.error("Lỗi khi lấy pages:", error);
       process.exit(1);
     }
   });
@@ -145,7 +145,7 @@ const startCrawling = async (urlsIds) => {
     try {
       urlsIds = JSON.parse(fs.readFileSync(detailPagesFile, "utf8"));
     } catch (e) {
-      console.error("Lỗi đọc file detail_chapters.txt:", e);
+      console.error("Lỗi đọc file pages.txt:", e);
       process.exit(1);
     }
   } else {
