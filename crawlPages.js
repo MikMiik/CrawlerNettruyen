@@ -8,6 +8,7 @@ const detailPagesFile = "./detail_pages.txt";
 const puppeteerExtra = require("puppeteer-extra");
 const StealthPlugin = require("puppeteer-extra-plugin-stealth");
 const downloadImage = require("./utils/downloadImage");
+const path = require("path");
 puppeteerExtra.use(StealthPlugin());
 
 const scrollToBottom = async (page, step = 200, delay = 30) => {
