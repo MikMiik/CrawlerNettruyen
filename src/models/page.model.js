@@ -9,7 +9,7 @@ module.exports = (sequelize, DataTypes) => {
   Page.init(
     {
       id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
-      chapterId: { type: DataTypes.INTEGER, allowNull: false },
+      chapter: { type: DataTypes.INTEGER, allowNull: false },
       comicId: { type: DataTypes.INTEGER, allowNull: false },
       imageUrl: { type: DataTypes.JSON, allowNull: false },
       createdAt: DataTypes.DATE,

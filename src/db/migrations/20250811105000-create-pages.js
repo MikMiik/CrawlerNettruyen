@@ -9,17 +9,7 @@ module.exports = {
         primaryKey: true,
         type: Sequelize.INTEGER,
       },
-      chapterId: {
-        type: Sequelize.INTEGER,
-        allowNull: false,
-        references: {
-          model: "chapters",
-          key: "id",
-        },
-        onDelete: "CASCADE",
-        onUpdate: "CASCADE",
-      },
-      pageNumber: {
+      chapter: {
         type: Sequelize.INTEGER,
         allowNull: false,
       },
@@ -39,9 +29,6 @@ module.exports = {
         type: Sequelize.DATE,
         allowNull: true,
       },
-    });
-    await queryInterface.addIndex("pages", ["chapterId", "pageNumber"], {
-      unique: true,
     });
   },
   async down(queryInterface, Sequelize) {
