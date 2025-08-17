@@ -210,7 +210,6 @@ const startCrawling = async (urlsIds) => {
     // Lấy từ DB, ghi ra file
     urlsIds = await Chapter.findAll({
       attributes: ["id", "url", "comicId", "chapterIndex"],
-      limit: 1,
       where: {
         comicId: [
           86, 53, 81, 51, 20, 40, 43, 34, 53, 23, 29, 16, 29, 46, 13, 16, 38, 3,

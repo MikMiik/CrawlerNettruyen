@@ -5,7 +5,7 @@ module.exports = {
     await queryInterface.addColumn("pages", "comicId", {
       type: Sequelize.INTEGER,
       allowNull: false,
-      after: "chapterId",
+      after: "chapter",
     });
   },
   async down(queryInterface, Sequelize) {
