@@ -222,8 +222,7 @@ const startCrawling = async (urlsIds) => {
       attributes: ["id", "url", "comicId", "chapterIndex"],
       where: {
         comicId: [
-          86, 53, 81, 51, 20, 40, 43, 34, 53, 23, 29, 16, 29, 46, 13, 16, 38, 3,
-          45, 41,
+          86, 53, 81, 51, 20, 40, 43, 34, 23, 29, 16, 46, 13, 38, 3, 45, 41,
         ],
       },
       raw: true,
