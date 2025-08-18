@@ -31,7 +31,7 @@ const scrollToBottom = async (page, step = 200, delay = 30) => {
 const startCrawling = async (urlsIds) => {
   const cluster = await Cluster.launch({
     concurrency: Cluster.CONCURRENCY_PAGE,
-    maxConcurrency: 1,
+    maxConcurrency: 5,
     puppeteer: puppeteerExtra,
     puppeteerOptions: {
       headless: true,
@@ -100,7 +100,17 @@ const startCrawling = async (urlsIds) => {
       }
 
       try {
-        const scrolled = await scrollToBottom(page);
+        let scrolled = false;
+        try {
+          scrolled = await scrollToBottom(page);
+        } catch (err) {
+          if (String(err).includes("detached Frame")) {
+            console.error("Frame bị detach, bỏ qua url này.");
+            await saveErrorPage();
+            return;
+          }
+          throw err;
+        }
         if (!scrolled) {
           throw new Error("Chưa cuộn hết trang, dừng crawl!");
         }
