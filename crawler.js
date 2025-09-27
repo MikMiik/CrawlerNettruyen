@@ -19,7 +19,7 @@ if (fs.existsSync(pageFile)) {
 
 (async () => {
   const browser = await puppeteer.launch({
-    headless: true,
+    headless: false,
     executablePath: process.env.CHROME_PATH || "/usr/bin/google-chrome-stable",
     defaultViewport: false,
     userDataDir: "/home/blog-user/puppeteer-cache",
@@ -48,7 +48,8 @@ if (fs.existsSync(pageFile)) {
   });
 
   let isBtnDisabled = false;
-  while (!isBtnDisabled) {
+  let crawledPages = 0;
+  while (!isBtnDisabled && crawledPages < 3) {
     console.log(`Đang crawl page: ${currentPage}`);
     let comics = [];
     let pageSuccess = false;
@@ -100,6 +101,7 @@ if (fs.existsSync(pageFile)) {
 
     if (!is_disabled && pageSuccess) {
       currentPage++;
+      crawledPages++;
       fs.writeFileSync(pageFile, String(currentPage));
       await Promise.all([
         page.click("li.page-item:last-child a[aria-label='Next »']"),

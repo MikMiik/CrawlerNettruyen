@@ -140,18 +140,52 @@ const startCrawling = async (urlsIds) => {
           fs.mkdirSync(chapterDir, { recursive: true });
         }
 
-        // Download tất cả ảnh với tên file theo thứ tự 0.jpg, 1.jpg, 2.jpg...
+        // Download tất cả ảnh với retry, ghi lỗi nếu không thành công
         const imageUrls = [];
+        const errorImagesFile = "./error_images.txt";
         await Promise.all(
           pages.map(async (pageData) => {
             const fileName = pageData.imageUrl.split("/").pop();
             const filePath = `${chapterDir}/${fileName}`;
-
-            // const newfilePath = await downloadImage(
-            //   pageData.imageUrl,
-            //   filePath,
-            //   "https://nettruyenvia.com/"
-            // );
+            let success = false;
+            let lastError = null;
+            for (let attempt = 1; attempt <= 3; attempt++) {
+              try {
+                await downloadImage(
+                  pageData.imageUrl,
+                  filePath,
+                  "https://nettruyenvia.com/"
+                );
+                success = true;
+                break;
+              } catch (err) {
+                lastError = err;
+                console.warn(
+                  `Lỗi download ảnh lần ${attempt}: ${pageData.imageUrl} - ${err.message}`
+                );
+              }
+            }
+            if (!success) {
+              // Ghi vào file lỗi
+              let arr = [];
+              if (fs.existsSync(errorImagesFile)) {
+                try {
+                  arr = JSON.parse(fs.readFileSync(errorImagesFile, "utf8"));
+                } catch {}
+              }
+              arr.push({
+                imageUrl: pageData.imageUrl,
+                filePath,
+                comicId,
+                chapter,
+                error: lastError ? lastError.message : "Unknown error",
+              });
+              fs.writeFileSync(errorImagesFile, JSON.stringify(arr, null, 2));
+              console.warn(
+                `Ghi lỗi download ảnh vào error_images.txt: ${pageData.imageUrl}`
+              );
+              return; // Không thêm vào imageUrls nếu lỗi
+            }
             const dir = path.dirname(filePath);
             if (!fs.existsSync(dir)) {
               fs.mkdirSync(dir, { recursive: true });
@@ -220,11 +254,6 @@ const startCrawling = async (urlsIds) => {
     // Lấy từ DB, ghi ra file
     urlsIds = await Chapter.findAll({
       attributes: ["id", "url", "comicId", "chapterIndex"],
-      where: {
-        comicId: [
-          86, 53, 81, 51, 20, 40, 43, 34, 23, 29, 16, 46, 13, 38, 3, 45, 41,
-        ],
-      },
       raw: true,
     });
     fs.writeFileSync(detailPagesFile, JSON.stringify(urlsIds, null, 2));
